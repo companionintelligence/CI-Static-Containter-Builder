@@ -1,0 +1,82 @@
+# syntax=docker/dockerfile:1
+# ─────────────────────────────────────────────────────────────────────────────
+# ci-static-container-builder  |  WebAssembly (WASM) approach
+#
+# Packages any static-file directory into a Spin-based container that serves
+# the site using the Fermyon Spin WASM runtime.
+#
+# Two variants are produced by this Dockerfile:
+#
+#   Target "spin-server"  (default)
+#     A lightweight Debian image with the Spin CLI and static files baked in.
+#     Run with:  docker run --rm -p 3000:3000 <image>
+#     No special container runtime required.
+#
+#   Target "wasm-scratch"
+#     A minimal OCI scratch image containing only the WASM binary and static
+#     files.  Requires the containerd + WasmEdge (or Spin) shim:
+#       docker run --rm -p 3000:3000 \
+#         --runtime=io.containerd.spin.v2 \
+#         --platform=wasi/wasm \
+#         <image>
+#
+# Build arguments
+#   STATIC_FILES_PATH  – host path to the pre-built static site (default: ./public)
+#   SPIN_VERSION       – Fermyon Spin CLI version to install (default: v2.7.0)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: gather static files ─────────────────────────────────────────────
+FROM alpine:3.19 AS static-files
+
+ARG STATIC_FILES_PATH=./public
+WORKDIR /site
+COPY ${STATIC_FILES_PATH} .
+
+# ── Stage 2: download Spin CLI + pre-fetch WASM component ────────────────────
+FROM debian:bookworm-slim AS spin-setup
+
+ARG SPIN_VERSION=v2.7.0
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install Spin CLI
+RUN curl -fsSL https://developer.fermyon.com/downloads/install.sh \
+      | bash -s -- -v "${SPIN_VERSION}" \
+ && mv spin /usr/local/bin/spin
+
+# Pre-download the static-fileserver WASM component so the final image is
+# self-contained and does not require internet access at runtime.
+WORKDIR /app
+COPY spin/spin.toml .
+COPY --from=static-files /site public/
+RUN spin build --from spin.toml 2>/dev/null || true \
+ && spin up --listen 0.0.0.0:3000 --allow-transient-write & \
+    sleep 5 && kill %1 2>/dev/null || true
+
+# ── Stage 3a: spin-server (default target) ───────────────────────────────────
+FROM debian:bookworm-slim AS spin-server
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=spin-setup /usr/local/bin/spin /usr/local/bin/spin
+COPY --from=spin-setup /app /app
+
+WORKDIR /app
+EXPOSE 3000
+
+CMD ["spin", "up", "--listen", "0.0.0.0:3000"]
+
+# ── Stage 3b: wasm-scratch (OCI WASM scratch image) ──────────────────────────
+# Requires:  docker run --runtime=io.containerd.spin.v2 --platform=wasi/wasm
+FROM scratch AS wasm-scratch
+
+# Copy the Spin static-fileserver WASM binary
+COPY --from=spin-setup /root/.spin/cache /cache
+COPY --from=static-files /site /public
+COPY spin/spin.toml /spin.toml
+
+ENTRYPOINT ["/spin.toml"]

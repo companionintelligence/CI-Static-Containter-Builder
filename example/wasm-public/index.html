@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Static Site – WASM Edition</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1.5rem; }
+    h1   { color: #6366f1; }
+    pre  { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: .5rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>⚡ WASM Static Site</h1>
+  <p>Served by <strong>Fermyon Spin</strong> running a WebAssembly static-file server.</p>
+  <p>Replace the contents of <code>example/wasm-public/</code> with your own static site.</p>
+  <h2>Run command</h2>
+  <pre><code>docker run --rm -p 3000:3000 static-site-wasm:latest</code></pre>
+  <p>Open <a href="http://localhost:3000">http://localhost:3000</a></p>
+</body>
+</html>

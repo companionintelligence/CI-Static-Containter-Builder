@@ -1,0 +1,27 @@
+services:
+  static-site:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Path to your pre-built static site on the host
+        STATIC_FILES_PATH: ./example/public
+    image: static-site:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # (Optional) Override the domain used in the self-signed cert.
+      # Set SSL_CERT and SSL_KEY to use your own certificate instead.
+      SSL_DOMAIN: localhost
+    # (Optional) Mount your own TLS certificate instead of the auto-generated one:
+    # volumes:
+    #   - ./certs/server.crt:/etc/nginx/ssl/server.crt:ro
+    #   - ./certs/server.key:/etc/nginx/ssl/server.key:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsk", "https://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
