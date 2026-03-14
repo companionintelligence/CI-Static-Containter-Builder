@@ -1,0 +1,35 @@
+services:
+  static-site-wasm:
+    build:
+      context: .
+      dockerfile: Dockerfile.wasm
+      # Use "wasm-scratch" target for a true OCI WASM scratch image that
+      # requires --runtime=io.containerd.spin.v2 --platform=wasi/wasm
+      target: spin-server
+      args:
+        STATIC_FILES_PATH: ./example/wasm-public
+    image: static-site-wasm:latest
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Optional: nginx TLS termination in front of the WASM container ─────────
+  # Uncomment this block to expose the WASM site over HTTPS.
+  #
+  # tls-proxy:
+  #   image: nginx:1.27-alpine
+  #   depends_on:
+  #     - static-site-wasm
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/tls-proxy.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certs:/etc/nginx/ssl:ro
+  #   restart: unless-stopped

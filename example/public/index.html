@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Example static site hosted with ci-static-container-builder" />
+  <title>Static Site – ci-static-container-builder</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>🚀 ci-static-container-builder</h1>
+    <p class="tagline">Your static site, served fast over HTTPS.</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>✅ It works!</h2>
+      <p>
+        This example page is being served by the
+        <strong>ci-static-container-builder</strong> Docker image.
+        Replace the contents of <code>example/public/</code> with your own
+        built static site (React, Vue, Angular, plain HTML, etc.).
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>🔒 HTTPS (nginx approach)</h2>
+      <pre><code>docker build \
+  --build-arg STATIC_FILES_PATH=./my-app/dist \
+  -t my-site:latest .
+
+docker run --rm -p 80:80 -p 443:443 my-site:latest</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>⚡ WebAssembly (Spin/WASM approach)</h2>
+      <pre><code>docker build \
+  -f Dockerfile.wasm \
+  --build-arg STATIC_FILES_PATH=./my-app/dist \
+  -t my-site-wasm:latest .
+
+docker run --rm -p 3000:3000 my-site-wasm:latest</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>🩺 Health check</h2>
+      <p>
+        The nginx container exposes a lightweight health-check endpoint at
+        <code>GET /health</code> that returns <code>200 healthy</code>.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>ci-static-container-builder &copy; 2024</p>
+  </footer>
+</body>
+</html>
