@@ -1,0 +1,80 @@
+name: Publish container
+
+on:
+  push:
+    branches: [main]
+    tags: ["*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ghcr.io/companionintelligence/ci-static-containter-builder
+  INTERNAL_PORT: "80"
+
+jobs:
+  publish:
+    name: Build, smoke-test, publish
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Compute tags
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          short="$(git rev-parse --short HEAD)"
+          echo "sha_tag=${IMAGE_NAME}:sha-${short}" >> "$GITHUB_OUTPUT"
+          tags="${IMAGE_NAME}:latest,${IMAGE_NAME}:sha-${short}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tags="${tags},${IMAGE_NAME}:${GITHUB_REF_NAME}"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+      - name: Build image (load for testing)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ steps.meta.outputs.sha_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start container
+        run: docker run -d --name app -p 8080:${INTERNAL_PORT} ${{ steps.meta.outputs.sha_tag }}
+      - name: Smoke test (HTTP responds)
+        run: |
+          for i in $(seq 1 60); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || true)"
+            if [ "$code" != "000" ] && [ "$code" -lt 500 ]; then echo "smoke OK ($code)"; exit 0; fi
+            sleep 2
+          done
+          echo "container never responded"; docker logs app; exit 1
+      - name: Container logs (on failure)
+        if: failure()
+        run: docker logs app || true
+      - name: Tear down container
+        if: always()
+        run: docker rm -f app || true
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+      - name: Build and push
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
