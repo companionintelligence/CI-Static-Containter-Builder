@@ -3,11 +3,11 @@
 # ci-static-container-builder  |  nginx HTTPS approach
 #
 # Packages any static-file directory into a self-contained Docker image that
-# serves the site over HTTPS (HTTP/2) using nginx-alpine.
+# serves the site over HTTPS (HTTP/2) using nginx (Debian-based official image).
 #
 # Build arguments
-#   STATIC_FILES_PATH  – host path to the pre-built static site (default: ./public)
-#   SSL_DOMAIN         – CN used when auto-generating a self-signed cert (default: localhost)
+#   STATIC_FILES_PATH  – path to the pre-built static site, relative to the
+#                        build context (default: ./public)
 #
 # Runtime environment variables (all optional)
 #   SSL_CERT     – PEM-encoded certificate (overrides auto-generation)
