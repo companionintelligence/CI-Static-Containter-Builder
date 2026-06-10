@@ -19,11 +19,20 @@ if [ -n "${SSL_CERT}" ] && [ -n "${SSL_KEY}" ]; then
     echo "[entrypoint] Using SSL certificate and key from environment variables."
     printf '%s\n' "${SSL_CERT}" > "${CERT_FILE}"
     printf '%s\n' "${SSL_KEY}"  > "${KEY_FILE}"
+    chmod 600 "${KEY_FILE}"
+    chmod 644 "${CERT_FILE}"
 
 elif [ -f "${CERT_FILE}" ] && [ -f "${KEY_FILE}" ]; then
     echo "[entrypoint] Using existing SSL certificate at ${CERT_FILE}."
+    # The cert may live on a read-only mount (e.g. -v …:/etc/nginx/ssl/server.crt:ro),
+    # so permission tightening is best-effort only here.
+    chmod 600 "${KEY_FILE}"  2>/dev/null || true
+    chmod 644 "${CERT_FILE}" 2>/dev/null || true
 
 else
+    if [ -n "${SSL_CERT}" ] || [ -n "${SSL_KEY}" ]; then
+        echo "[entrypoint] WARNING: only one of SSL_CERT / SSL_KEY is set; both are required. Falling back to a self-signed certificate." >&2
+    fi
     DOMAIN="${SSL_DOMAIN:-localhost}"
     echo "[entrypoint] Generating self-signed certificate for: ${DOMAIN}"
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -33,9 +42,8 @@ else
         -addext "subjectAltName=DNS:${DOMAIN},DNS:*.${DOMAIN},IP:127.0.0.1" \
         2>/dev/null
     echo "[entrypoint] Self-signed certificate generated (expires in 365 days)."
+    chmod 600 "${KEY_FILE}"
+    chmod 644 "${CERT_FILE}"
 fi
-
-chmod 600 "${KEY_FILE}"
-chmod 644 "${CERT_FILE}"
 
 exec "$@"

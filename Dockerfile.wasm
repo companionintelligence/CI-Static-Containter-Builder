@@ -38,7 +38,7 @@ FROM debian:bookworm-slim AS spin-setup
 ARG SPIN_VERSION=v2.7.0
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl ca-certificates \
+ && apt-get install -y --no-install-recommends curl ca-certificates git \
  && rm -rf /var/lib/apt/lists/*
 
 # Install Spin CLI
@@ -64,6 +64,8 @@ RUN apt-get update \
 
 COPY --from=spin-setup /usr/local/bin/spin /usr/local/bin/spin
 COPY --from=spin-setup /app /app
+# Pre-fetched component cache → no internet access needed at runtime
+COPY --from=spin-setup /root/.cache/spin /root/.cache/spin
 
 WORKDIR /app
 EXPOSE 3000
@@ -75,7 +77,7 @@ CMD ["spin", "up", "--listen", "0.0.0.0:3000"]
 FROM scratch AS wasm-scratch
 
 # Copy the Spin static-fileserver WASM binary
-COPY --from=spin-setup /root/.spin/cache /cache
+COPY --from=spin-setup /root/.cache/spin /cache
 COPY --from=static-files /site /public
 COPY spin/spin.toml /spin.toml
 

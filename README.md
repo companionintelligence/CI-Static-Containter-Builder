@@ -6,7 +6,7 @@ Two complementary approaches are provided so you can choose the right trade-off 
 
 | | nginx approach | WASM (Spin) approach |
 |---|---|---|
-| **Image size** | ~25 MB | ~50 MB (Spin runtime) / <5 MB (scratch) |
+| **Image size** | ~70 MB (Debian-based nginx) | ~300 MB (Spin runtime) / <10 MB (scratch) |
 | **HTTPS** | ✅ Built-in | Via reverse proxy |
 | **Startup** | ~100 ms | ~10–50 ms |
 | **HTTP/2** | ✅ | ✅ (via proxy) |
@@ -31,6 +31,27 @@ Two complementary approaches are provided so you can choose the right trade-off 
 
 ## Quick start
 
+### Use the published image (no build required)
+
+A pre-built multi-arch (amd64 + arm64) image is published publicly to GHCR on every push to `main`:
+
+```bash
+docker pull ghcr.io/companionintelligence/ci-static-containter-builder:latest
+
+# Runs the baked-in default landing page over HTTP→HTTPS
+docker run --rm -p 80:80 -p 443:443 \
+  ghcr.io/companionintelligence/ci-static-containter-builder:latest
+```
+
+To serve **your own site** with the published image, layer your files on top:
+
+```dockerfile
+FROM ghcr.io/companionintelligence/ci-static-containter-builder:latest
+COPY ./dist /usr/share/nginx/html
+```
+
+### Build from source
+
 ```bash
 # Clone the repo
 git clone https://github.com/companionintelligence/ci-static-containter-builder.git
@@ -45,6 +66,11 @@ docker build \
 docker run --rm -p 80:80 -p 443:443 my-site:latest
 ```
 
+> **Note:** `STATIC_FILES_PATH` is resolved by `COPY` inside the build, so it must
+> point **inside the Docker build context** (the directory you pass to
+> `docker build`). To package files that live elsewhere, copy them into the
+> context first or use the `FROM ghcr.io/…` overlay pattern above.
+
 ---
 
 ## nginx HTTPS approach
@@ -53,7 +79,7 @@ docker run --rm -p 80:80 -p 443:443 my-site:latest
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Docker image (nginx:1.27-alpine)                        │
+│  Docker image (nginx:1.27, Debian-based)                 │
 │                                                          │
 │  Port 80  ──▶ 301 redirect ──▶ Port 443                 │
 │  Port 443 ──▶ nginx (HTTP/2, TLS 1.2/1.3)               │
@@ -290,7 +316,7 @@ ci-static-container-builder/
 - `Permissions-Policy` (camera, mic, geolocation denied)
 - OCSP Stapling
 - `server_tokens off` (no nginx version leak)
-- Non-root nginx worker processes (alpine default)
+- Non-root nginx worker processes (official nginx image default)
 - WASM sandbox: no host-kernel access by default
 
 ---
