@@ -331,3 +331,16 @@ ci-static-container-builder/
 - [WasmEdge Developer Guide](https://wasmedge.org/docs/start/build-and-run/docker_wasm/)
 - [spin-fileserver](https://github.com/fermyon/spin-fileserver)
 - [nginx performance tuning](https://nginx.org/en/docs/http/ngx_http_gzip_module.html)
+
+<!-- companion-hub-readme-deep-review -->
+
+## Choose an image variant
+
+| Variant | Runtime | Port | TLS behavior |
+|---|---|---:|---|
+| Nginx HTTPS | Standard Docker runtime | 80 and 443 | HTTP redirects to HTTPS; auto-generated certificate is self-signed unless you provide a certificate/key |
+| `spin-server` | Standard Docker runtime with Spin | 3000 | Static-file server; no TLS configuration described by this image |
+| `wasm-scratch` | containerd with Spin/WasmEdge shim and `wasi/wasm` platform | 3000 | WASM image for a compatible runtime |
+
+`STATIC_FILES_PATH` selects the static site during the build. The Nginx variant accepts `SSL_CERT`, `SSL_KEY`, and `SSL_DOMAIN`; mount production certificates securely and terminate TLS at a trusted proxy when that better fits the deployment.
+
