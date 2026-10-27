@@ -2,8 +2,16 @@
 
 <p align="center"><strong>A system for packaging any static web application into a self-contained Docker image that serves the site performantly over HTTPS.</strong></p>
 
-<p align="center"><a href="https://hub.ci.computer">Website</a> · <a href="#quick-start">Get started</a> · <a href="https://docs.ci.computer/docs/reference/open-source-systems">Systems map</a></p>
+[![release](https://img.shields.io/badge/release-not%20published-757575?style=flat-square)](https://github.com/companionintelligence/CI-Static-Containter-Builder/releases)
+[![platform](https://img.shields.io/badge/platform-Docker%20%C2%B7%20Spin%2FWasm-0a6358?style=flat-square)](https://github.com/companionintelligence/CI-Static-Containter-Builder)
+[![License](https://img.shields.io/badge/license-Commercial%20Standard-8a5a00?style=flat-square)](LICENSE.md)
+[![Discord](https://img.shields.io/badge/chat-Discord-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com/invite/yQp9hwpzAa)
 
+<p align="center"><a href="https://hub.ci.computer">Website</a> · <a href="#quick-start">Get started</a> · <a href="https://docs.ci.computer/docs/reference/open-source-systems">Systems map</a> · <a href="README.md#how-it-works">Documentation</a></p>
+
+<p align="center">
+  <a href="#quick-start"><img src="https://img.shields.io/badge/Build%20an%20image-Build%20an%20image-0a6358?style=for-the-badge&logo=docker&logoColor=white" alt="Build an image" height="30"></a>
+</p>
 
 Two complementary approaches are provided so you can choose the right trade-off for your workload:
 
@@ -31,6 +39,20 @@ Two complementary approaches are provided so you can choose the right trade-off 
 9. [Security features](#security-features)
 
 ---
+
+
+## How it fits together
+
+The site build is copied into an image. Nginx serves it with TLS in the standard image; a Spin/Wasm target uses a compatible runtime and an external TLS proxy if needed.
+
+```mermaid
+flowchart LR
+  Site[Static site output] --> Build[Container builder]
+  Build --> Nginx[Nginx and TLS image]
+  Build --> Spin[Spin/Wasm image]
+  Nginx --> Browser[HTTPS browser]
+  Spin --> Runtime[WASI-compatible runtime]
+```
 
 ## Quick start
 
@@ -298,6 +320,13 @@ ci-static-container-builder/
 ---
 
 ## Performance features
+
+| Feature | What it provides |
+|---|---|
+| **Static site image** | Bake a site's built files into an Nginx container. |
+| **HTTPS path** | Use generated self-signed TLS or mount a provided certificate. |
+| **WASM path** | Serve the same site through Spin on a compatible WASI container runtime. |
+
 
 - **HTTP/2** – multiplexed streams for faster page loads
 - **TLS 1.2 / 1.3 only** – fast handshakes, modern cipher suites
