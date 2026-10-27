@@ -1,6 +1,9 @@
-# ci-static-container-builder
+<h1 align="center">CI Static Container Builder</h1>
 
-A system for packaging any static web application into a **self-contained Docker image** that serves the site performantly over **HTTPS**.
+<p align="center"><strong>A system for packaging any static web application into a self-contained Docker image that serves the site performantly over HTTPS.</strong></p>
+
+<p align="center"><a href="https://hub.ci.computer">Website</a> · <a href="#quick-start">Get started</a></p>
+
 
 Two complementary approaches are provided so you can choose the right trade-off for your workload:
 
